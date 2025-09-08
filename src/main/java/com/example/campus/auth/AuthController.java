@@ -26,7 +26,9 @@ record SignupRequest(@NotBlank @Size(min=3,max=100) String username,
 record LoginRequest(@NotBlank String username, @NotBlank String password) {}
 
 record MessageResponse(String message) {}
-record LoginResponse(String message, String token, String role) {}
+
+// Added user info map in LoginResponse
+record LoginResponse(String message, String token, String role, Map<String, Object> user) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,9 +40,9 @@ public class AuthController {
 	private final JwtService jwtService;
 
 	public AuthController(UserRepository userRepository,
-						 PasswordEncoder passwordEncoder,
-						 AuthenticationManager authenticationManager,
-						 JwtService jwtService) {
+						  PasswordEncoder passwordEncoder,
+						  AuthenticationManager authenticationManager,
+						  JwtService jwtService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.authenticationManager = authenticationManager;
@@ -62,13 +64,13 @@ public class AuthController {
 		user.setUsername(req.username());
 		user.setPassword(passwordEncoder.encode(req.password()));
 		user.setRole(role);
-		
+
 		// Auto-generate student ID for students
 		if (role == Role.STUDENT) {
 			String studentId = generateStudentId();
 			user.setStudentId(studentId);
 		}
-		
+
 		userRepository.save(user);
 		return ResponseEntity.ok(new MessageResponse("Signup successful"));
 	}
@@ -76,18 +78,28 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
 		return userRepository.findByUsername(req.username())
-			.map(u -> {
-				try {
-					Authentication authentication = authenticationManager.authenticate(
-							new UsernamePasswordAuthenticationToken(req.username(), req.password()));
-					SecurityContextHolder.getContext().setAuthentication(authentication);
-					String token = jwtService.generateToken((UserDetails) authentication.getPrincipal(), Map.of("role", u.getRole().name()));
-					return ResponseEntity.ok(new LoginResponse("Login successful as " + u.getRole().name(), token, u.getRole().name()));
-				} catch (BadCredentialsException ex) {
-					return ResponseEntity.status(401).body(new MessageResponse("Invalid credentials"));
-				}
-			})
-			.orElseGet(() -> ResponseEntity.status(404).body(new MessageResponse("User not found in database"))); 
+				.map(u -> {
+					try {
+						Authentication authentication = authenticationManager.authenticate(
+								new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+						SecurityContextHolder.getContext().setAuthentication(authentication);
+						String token = jwtService.generateToken((UserDetails) authentication.getPrincipal(), Map.of("role", u.getRole().name()));
+						return ResponseEntity.ok(new LoginResponse(
+								"Login successful as " + u.getRole().name(),
+								token,
+								u.getRole().name(),
+								Map.of(
+										"id", u.getId(),
+										"username", u.getUsername(),
+										"role", u.getRole().name()
+								)
+						));
+
+					} catch (BadCredentialsException ex) {
+						return ResponseEntity.status(401).body(new MessageResponse("Invalid credentials"));
+					}
+				})
+				.orElseGet(() -> ResponseEntity.status(404).body(new MessageResponse("User not found in database")));
 	}
 
 	@GetMapping("/me")
@@ -111,5 +123,3 @@ public class AuthController {
 		return "STU" + year + String.format("%04d", count);
 	}
 }
-
-

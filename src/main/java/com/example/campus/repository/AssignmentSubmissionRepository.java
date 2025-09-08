@@ -10,12 +10,26 @@ import java.util.List;
 
 @Repository
 public interface AssignmentSubmissionRepository extends JpaRepository<AssignmentSubmission, Long> {
-    List<AssignmentSubmission> findByStudentId(Long studentId);
-    List<AssignmentSubmission> findByAssignmentId(Long assignmentId);
-    
-    @Query("SELECT s FROM AssignmentSubmission s WHERE s.assignmentId = :assignmentId AND s.studentId = :studentId")
-    AssignmentSubmission findByAssignmentIdAndStudentId(@Param("assignmentId") Long assignmentId, @Param("studentId") Long studentId);
 
-    @Query("SELECT s FROM AssignmentSubmission s WHERE s.status = 'SUBMITTED' AND s.assignmentId = :assignmentId")
+    // 🔹 Student: View all their submissions
+    List<AssignmentSubmission> findByStudentId(Long studentId);
+
+    // 🔹 Faculty: View all submissions for a specific assignment
+    List<AssignmentSubmission> findByAssignmentId(Long assignmentId);
+
+    // 🔹 Faculty/Student: Find specific submission (unique student+assignment)
+    @Query("SELECT s FROM AssignmentSubmission s " +
+            "WHERE s.assignmentId = :assignmentId AND s.studentId = :studentId")
+    AssignmentSubmission findByAssignmentIdAndStudentId(@Param("assignmentId") Long assignmentId,
+                                                        @Param("studentId") Long studentId);
+
+    // 🔹 Faculty: View only submitted (pending grading) submissions
+    @Query("SELECT s FROM AssignmentSubmission s " +
+            "WHERE s.status = 'SUBMITTED' AND s.assignmentId = :assignmentId")
     List<AssignmentSubmission> findPendingSubmissionsByAssignment(@Param("assignmentId") Long assignmentId);
+
+    // 🔹 Faculty: View already graded submissions
+    @Query("SELECT s FROM AssignmentSubmission s " +
+            "WHERE s.status = 'GRADED' AND s.assignmentId = :assignmentId")
+    List<AssignmentSubmission> findGradedSubmissionsByAssignment(@Param("assignmentId") Long assignmentId);
 }
