@@ -2,6 +2,7 @@ package com.example.campus.features;
 
 import com.example.campus.entity.*;
 import com.example.campus.repository.*;
+import com.example.campus.security.JwtService;
 import com.example.campus.user.User;
 import com.example.campus.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,47 +53,35 @@ public class StudentController {
     @Autowired
     private TimetableRepository timetableRepository;
 
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> dashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
 
-            // Try to find the student linked to this user
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
-
-            Long studentId = student.getId();
+            Long studentId = user.getId();
             LocalDate today = LocalDate.now();
 
-            // Fetch today's attendance for the student
+            // Today's attendance
             List<Attendance> todayAttendance = attendanceRepository.findByStudentIdAndDate(studentId, today);
 
-            // Fetch upcoming assignments
+            // Pending assignments
             List<Assignment> pendingAssignments = assignmentRepository.findUpcomingAssignments(LocalDateTime.now());
 
             // Fee status
             BigDecimal totalPaid = feeRepository.calculateTotalPaid(studentId);
             BigDecimal totalPending = feeRepository.calculateTotalPending(studentId);
 
-            // Recent notifications targeted at students or all roles
+            // Recent notifications
             List<Notification> notifications = notificationRepository.findByTargetRoleOrAll(Notification.TargetRole.STUDENT);
-            if (notifications.size() > 5) {
-                notifications = notifications.subList(0, 5);
-            }
+            notifications = notifications.stream().limit(5).toList();
 
-            // Calculate CGPA
+            // CGPA calculation
             Double cgpa = markRepository.calculateCGPA(studentId);
-            if (cgpa == null) {
-                cgpa = 0.0;
-            }
+            if (cgpa == null) cgpa = 0.0;
 
             Map<String, Object> dashboard = new HashMap<>();
             dashboard.put("todayAttendance", todayAttendance);
@@ -101,8 +90,8 @@ public class StudentController {
             dashboard.put("totalPending", totalPending != null ? totalPending : BigDecimal.ZERO);
             dashboard.put("notifications", notifications);
             dashboard.put("cgpa", Math.round(cgpa * 100.0) / 100.0);
-            dashboard.put("studyHours", 3.5); // Mock data; replace with real logic if available
-            dashboard.put("schedule", "Maths at 10:00, Physics at 2:00"); // Mock data; replace with real timetable
+            dashboard.put("studyHours", 3.5); // Mock data
+            dashboard.put("schedule", "Maths at 10:00, Physics at 2:00"); // Mock data
 
             return ResponseEntity.ok(dashboard);
         } catch (Exception e) {
@@ -113,19 +102,12 @@ public class StudentController {
     @GetMapping("/attendance")
     public ResponseEntity<?> getAttendance(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
-            List<Attendance> attendance = attendanceRepository.findByStudentId(student.getId());
+            List<Attendance> attendance = attendanceRepository.findByStudentId(user.getId());
             return ResponseEntity.ok(attendance);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
@@ -135,21 +117,14 @@ public class StudentController {
     @GetMapping("/attendance/subject/{subject}")
     public ResponseEntity<?> getAttendanceBySubject(@PathVariable String subject, @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
-            List<Attendance> attendance = attendanceRepository.findByStudentIdAndSubject(student.getId(), subject);
-            Long present = attendanceRepository.countPresentByStudentAndSubject(student.getId(), subject);
-            Long total = attendanceRepository.countTotalByStudentAndSubject(student.getId(), subject);
+            List<Attendance> attendance = attendanceRepository.findByStudentIdAndSubject(user.getId(), subject);
+            Long present = attendanceRepository.countPresentByStudentAndSubject(user.getId(), subject);
+            Long total = attendanceRepository.countTotalByStudentAndSubject(user.getId(), subject);
 
             Map<String, Object> result = new HashMap<>();
             result.put("attendance", attendance);
@@ -166,7 +141,6 @@ public class StudentController {
     @GetMapping("/assignments")
     public ResponseEntity<?> getAssignments(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            // No user-specific filtering here, but you can add if needed
             List<Assignment> assignments = assignmentRepository.findUpcomingAssignments(LocalDateTime.now());
             return ResponseEntity.ok(assignments);
         } catch (Exception e) {
@@ -177,21 +151,14 @@ public class StudentController {
     @PostMapping("/assignments/{assignmentId}/submit")
     public ResponseEntity<?> submitAssignment(@PathVariable Long assignmentId, @RequestBody Map<String, String> submission, @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
             AssignmentSubmission assignmentSubmission = new AssignmentSubmission();
             assignmentSubmission.setAssignmentId(assignmentId);
-            assignmentSubmission.setStudentId(student.getId());
+            assignmentSubmission.setStudentId(user.getId());
             assignmentSubmission.setSubmissionText(submission.get("text"));
             assignmentSubmission.setSubmittedAt(LocalDateTime.now());
 
@@ -205,20 +172,13 @@ public class StudentController {
     @GetMapping("/marks")
     public ResponseEntity<?> getMarks(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
-            List<Mark> marks = markRepository.findByStudentId(student.getId());
-            Double cgpa = markRepository.calculateCGPA(student.getId());
+            List<Mark> marks = markRepository.findByStudentId(user.getId());
+            Double cgpa = markRepository.calculateCGPA(user.getId());
             if (cgpa == null) cgpa = 0.0;
 
             Map<String, Object> result = new HashMap<>();
@@ -234,21 +194,14 @@ public class StudentController {
     @GetMapping("/fees")
     public ResponseEntity<?> getFees(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
-            List<Fee> fees = feeRepository.findByStudentId(student.getId());
-            BigDecimal totalPaid = feeRepository.calculateTotalPaid(student.getId());
-            BigDecimal totalPending = feeRepository.calculateTotalPending(student.getId());
+            List<Fee> fees = feeRepository.findByStudentId(user.getId());
+            BigDecimal totalPaid = feeRepository.calculateTotalPaid(user.getId());
+            BigDecimal totalPending = feeRepository.calculateTotalPending(user.getId());
 
             Map<String, Object> result = new HashMap<>();
             result.put("fees", fees);
@@ -264,28 +217,16 @@ public class StudentController {
     @PostMapping("/feedback")
     public ResponseEntity<?> submitFeedback(@RequestBody Map<String, String> feedback, @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
-            Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
-            if (student == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
-            }
 
             Feedback newFeedback = new Feedback();
-            newFeedback.setStudentId(student.getId());
+            newFeedback.setStudentId(user.getId());
             newFeedback.setTitle(feedback.get("title"));
             newFeedback.setMessage(feedback.get("message"));
-
-            try {
-                newFeedback.setCategory(Feedback.Category.valueOf(feedback.get("category")));
-            } catch (IllegalArgumentException | NullPointerException ex) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid feedback category"));
-            }
+            newFeedback.setCategory(Feedback.Category.valueOf(feedback.get("category")));
 
             feedbackRepository.save(newFeedback);
             return ResponseEntity.ok(Map.of("message", "Feedback submitted successfully"));
@@ -297,7 +238,6 @@ public class StudentController {
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            // No user validation for notifications; you can add if required
             List<Notification> notifications = notificationRepository.findByTargetRoleOrAll(Notification.TargetRole.STUDENT);
             return ResponseEntity.ok(notifications);
         } catch (Exception e) {
@@ -308,17 +248,15 @@ public class StudentController {
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
 
+            // Try to find student profile, if not found create mock data
             Student student = studentRepository.findByEmail(user.getUsername()).orElse(null);
             if (student == null) {
-                // Return mock profile if no student found
+                // Create mock student profile
                 Map<String, Object> mockProfile = new HashMap<>();
                 mockProfile.put("id", user.getId());
                 mockProfile.put("name", "John Doe");
@@ -345,57 +283,59 @@ public class StudentController {
     @GetMapping("/timetable/today")
     public ResponseEntity<?> getTodayTimetable(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            if (userDetails == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Authentication required"));
-            }
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
             }
 
+            // Get today's day of week
             String today = LocalDate.now().getDayOfWeek().toString();
 
+            // Try to find actual timetable, if not found create mock data
             List<Timetable> timetable = timetableRepository.findByDayOfWeek(Timetable.DayOfWeek.valueOf(today));
             if (timetable.isEmpty()) {
-                // Mock timetable if none found
+                // Create mock timetable data
                 List<Map<String, Object>> mockTimetable = new ArrayList<>();
 
-                mockTimetable.add(Map.of(
-                        "id", 1L,
-                        "subject", "Operating Systems",
-                        "teacher", "Prof. Sharma",
-                        "classroom", "A101",
-                        "startTime", "09:00",
-                        "endTime", "10:00",
-                        "dayOfWeek", today
-                ));
-                mockTimetable.add(Map.of(
-                        "id", 2L,
-                        "subject", "Computer Networks",
-                        "teacher", "Prof. Verma",
-                        "classroom", "B203",
-                        "startTime", "10:15",
-                        "endTime", "11:15",
-                        "dayOfWeek", today
-                ));
-                mockTimetable.add(Map.of(
-                        "id", 3L,
-                        "subject", "Data Structures",
-                        "teacher", "Prof. Iyer",
-                        "classroom", "C102",
-                        "startTime", "11:30",
-                        "endTime", "12:30",
-                        "dayOfWeek", today
-                ));
-                mockTimetable.add(Map.of(
-                        "id", 4L,
-                        "subject", "English",
-                        "teacher", "Prof. Gupta",
-                        "classroom", "D104",
-                        "startTime", "14:00",
-                        "endTime", "15:00",
-                        "dayOfWeek", today
-                ));
+                Map<String, Object> class1 = new HashMap<>();
+                class1.put("id", 1L);
+                class1.put("subject", "Operating Systems");
+                class1.put("teacher", "Prof. Sharma");
+                class1.put("classroom", "A101");
+                class1.put("startTime", "09:00");
+                class1.put("endTime", "10:00");
+                class1.put("dayOfWeek", today);
+                mockTimetable.add(class1);
+
+                Map<String, Object> class2 = new HashMap<>();
+                class2.put("id", 2L);
+                class2.put("subject", "Computer Networks");
+                class2.put("teacher", "Prof. Verma");
+                class2.put("classroom", "B203");
+                class2.put("startTime", "10:15");
+                class2.put("endTime", "11:15");
+                class2.put("dayOfWeek", today);
+                mockTimetable.add(class2);
+
+                Map<String, Object> class3 = new HashMap<>();
+                class3.put("id", 3L);
+                class3.put("subject", "Data Structures");
+                class3.put("teacher", "Prof. Iyer");
+                class3.put("classroom", "C102");
+                class3.put("startTime", "11:30");
+                class3.put("endTime", "12:30");
+                class3.put("dayOfWeek", today);
+                mockTimetable.add(class3);
+
+                Map<String, Object> class4 = new HashMap<>();
+                class4.put("id", 4L);
+                class4.put("subject", "English");
+                class4.put("teacher", "Prof. Gupta");
+                class4.put("classroom", "D104");
+                class4.put("startTime", "14:00");
+                class4.put("endTime", "15:00");
+                class4.put("dayOfWeek", today);
+                mockTimetable.add(class4);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("timetable", mockTimetable);
@@ -423,24 +363,12 @@ public class StudentController {
         try {
             List<Subject> subjects = subjectRepository.findAll();
             if (subjects.isEmpty()) {
+                // Create mock subjects
                 List<Map<String, Object>> mockSubjects = new ArrayList<>();
 
-                String[] subjectNames = {
-                        "Operating Systems",
-                        "Computer Networks",
-                        "Data Structures",
-                        "Database Management",
-                        "Software Engineering",
-                        "Web Development"
-                };
-                String[] subjectCodes = {
-                        "CS301",
-                        "CS302",
-                        "CS303",
-                        "CS304",
-                        "CS305",
-                        "CS306"
-                };
+                String[] subjectNames = {"Operating Systems", "Computer Networks", "Data Structures",
+                        "Database Management", "Software Engineering", "Web Development"};
+                String[] subjectCodes = {"CS301", "CS302", "CS303", "CS304", "CS305", "CS306"};
 
                 for (int i = 0; i < subjectNames.length; i++) {
                     Map<String, Object> subject = new HashMap<>();
@@ -459,6 +387,10 @@ public class StudentController {
 
             return ResponseEntity.ok(subjects);
         } catch (Exception e) {
+
+
+
+
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }

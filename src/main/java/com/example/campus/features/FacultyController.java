@@ -141,38 +141,30 @@ public class FacultyController {
         }
     }
 
-
-
-    @PostMapping("/assignments/{assignmentId}/submit")
-    public ResponseEntity<?> submitAssignment(@PathVariable Long assignmentId,
-                                              @RequestBody Map<String, String> body,
-                                              @AuthenticationPrincipal UserDetails userDetails) {
-        String submissionText = body.get("text");
-        if (submissionText == null || submissionText.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Submission text cannot be empty"));
-        }
-
-        User user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        AssignmentSubmission assignmentSubmission = new AssignmentSubmission();
-        assignmentSubmission.setAssignmentId(assignmentId);
-        assignmentSubmission.setStudentId(user.getId());
-        assignmentSubmission.setSubmissionText(submissionText.trim());
-        assignmentSubmission.setSubmittedAt(LocalDateTime.now());  // Add submission timestamp
-
-        submissionRepository.save(assignmentSubmission);
-
-        return ResponseEntity.ok(Map.of("message", "Assignment submitted successfully"));
-    }
-
     @GetMapping("/assignments")
     public ResponseEntity<?> getAssignments(@AuthenticationPrincipal UserDetails userDetails) {
-        // Optional: you can filter assignments relevant to the student here if needed
-        List<Assignment> assignments = assignmentRepository.findAll(); // Or findUpcomingAssignments(LocalDateTime.now())
-        return ResponseEntity.ok(assignments);
+        try {
+            User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+            if (user == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+            }
+
+            List<Assignment> assignments = assignmentRepository.findByAssignedBy(user.getUsername());
+            return ResponseEntity.ok(assignments);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 
+    @GetMapping("/assignments/{assignmentId}/submissions")
+    public ResponseEntity<?> getAssignmentSubmissions(@PathVariable Long assignmentId, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<AssignmentSubmission> submissions = submissionRepository.findByAssignmentId(assignmentId);
+            return ResponseEntity.ok(submissions);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @PostMapping("/assignments/{assignmentId}/grade")
     public ResponseEntity<?> gradeAssignment(@PathVariable Long assignmentId, @RequestBody Map<String, Object> gradeData, @AuthenticationPrincipal UserDetails userDetails) {
