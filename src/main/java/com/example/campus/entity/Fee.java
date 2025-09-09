@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMin;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "fees")
@@ -29,10 +29,10 @@ public class Fee {
 
     @NotNull
     @Column(name = "due_date", nullable = false)
-    private LocalDateTime dueDate;
+    private LocalDate dueDate;
 
     @Column(name = "paid_date")
-    private LocalDateTime paidDate;
+    private LocalDate paidDate;
 
     @Column(name = "payment_method")
     private String paymentMethod;
@@ -45,10 +45,10 @@ public class Fee {
     private PaymentStatus status;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDate createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDate updatedAt;
 
     public enum FeeType {
         TUITION, LIBRARY, LAB, EXAM, TRANSPORT, HOSTEL, OTHER
@@ -60,8 +60,8 @@ public class Fee {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = LocalDate.now();
+        updatedAt = LocalDate.now();
         if (status == null) {
             status = PaymentStatus.PENDING;
         }
@@ -69,7 +69,7 @@ public class Fee {
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDate.now();
     }
 
     // Getters and Setters
@@ -85,11 +85,11 @@ public class Fee {
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public LocalDateTime getDueDate() { return dueDate; }
-    public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
 
-    public LocalDateTime getPaidDate() { return paidDate; }
-    public void setPaidDate(LocalDateTime paidDate) { this.paidDate = paidDate; }
+    public LocalDate getPaidDate() { return paidDate; }
+    public void setPaidDate(LocalDate paidDate) { this.paidDate = paidDate; }
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
@@ -100,9 +100,9 @@ public class Fee {
     public PaymentStatus getStatus() { return status; }
     public void setStatus(PaymentStatus status) { this.status = status; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDate getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDate createdAt) { this.createdAt = createdAt; }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDate getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDate updatedAt) { this.updatedAt = updatedAt; }
 }

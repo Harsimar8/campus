@@ -3,7 +3,7 @@ package com.example.campus.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "feedback")
@@ -41,13 +41,13 @@ public class Feedback {
     private String respondedBy;
 
     @Column(name = "responded_at")
-    private LocalDateTime respondedAt;
+    private LocalDate respondedAt;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDate createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDate updatedAt;
 
     public enum Category {
         ACADEMIC, TECHNICAL, FACILITY, GENERAL
@@ -59,8 +59,8 @@ public class Feedback {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = LocalDate.now();
+        updatedAt = LocalDate.now();
         if (status == null) {
             status = Status.PENDING;
         }
@@ -68,7 +68,7 @@ public class Feedback {
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDate.now();
     }
 
     // Getters and Setters
@@ -96,12 +96,12 @@ public class Feedback {
     public String getRespondedBy() { return respondedBy; }
     public void setRespondedBy(String respondedBy) { this.respondedBy = respondedBy; }
 
-    public LocalDateTime getRespondedAt() { return respondedAt; }
-    public void setRespondedAt(LocalDateTime respondedAt) { this.respondedAt = respondedAt; }
+    public LocalDate getRespondedAt() { return respondedAt; }
+    public void setRespondedAt(LocalDate respondedAt) { this.respondedAt = respondedAt; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDate getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDate createdAt) { this.createdAt = createdAt; }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDate getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDate updatedAt) { this.updatedAt = updatedAt; }
 }

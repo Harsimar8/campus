@@ -13,7 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -212,7 +212,7 @@ public class AdminController {
 
             feedback.setAdminResponse(response.get("response"));
             feedback.setRespondedBy(userDetails.getUsername());
-            feedback.setRespondedAt(LocalDateTime.now());
+            feedback.setRespondedAt(LocalDate.now());
             feedback.setStatus(Feedback.Status.RESOLVED);
 
             feedbackRepository.save(feedback);
@@ -247,6 +247,41 @@ public class AdminController {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
+    @PutMapping("/notifications/{id}")
+    public ResponseEntity<?> updateNotification(@PathVariable Long id, @RequestBody Map<String, Object> updatedData) {
+        try {
+            Optional<Notification> optionalNotification = notificationRepository.findById(id);
+            if (optionalNotification.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("error", "Notification not found"));
+            }
+
+            Notification notification = optionalNotification.get();
+            notification.setTitle(updatedData.get("title").toString());
+            notification.setMessage(updatedData.get("message").toString());
+            notification.setTargetRole(Notification.TargetRole.valueOf(updatedData.get("targetRole").toString()));
+            notification.setUpdatedAt(LocalDate.now());
+
+            notificationRepository.save(notification);
+            return ResponseEntity.ok(Map.of("message", "Notification updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+        try {
+            if (!notificationRepository.existsById(id)) {
+                return ResponseEntity.status(404).body(Map.of("error", "Notification not found"));
+            }
+
+            notificationRepository.deleteById(id);
+            return ResponseEntity.ok(Map.of("message", "Notification deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
 
     @PostMapping("/fees")
     public ResponseEntity<?> createFee(@RequestBody Map<String, Object> feeData, @AuthenticationPrincipal UserDetails userDetails) {
@@ -255,7 +290,7 @@ public class AdminController {
             fee.setStudentId(Long.valueOf(feeData.get("studentId").toString()));
             fee.setFeeType(Fee.FeeType.valueOf(feeData.get("feeType").toString()));
             fee.setAmount(new BigDecimal(feeData.get("amount").toString()));
-            fee.setDueDate(LocalDateTime.parse(feeData.get("dueDate").toString()));
+            fee.setDueDate(LocalDate.parse(feeData.get("dueDate").toString()));
 
             feeRepository.save(fee);
             return ResponseEntity.ok(Map.of("message", "Fee created successfully"));
