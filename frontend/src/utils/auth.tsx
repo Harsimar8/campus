@@ -72,24 +72,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string) => {
     try {
       const response = await api.post("/auth/login", { username, password })
-      const { token, role, user: userData } = response.data
+      const { token, role } = response.data
 
       localStorage.setItem("token", token)
       localStorage.setItem("role", role)
 
+      // Now fetch full user profile using the token
+      const profileRes = await api.get("/auth/me")
+
       setUser({
-        id: userData?.id || 0,
-        username,
-        role,
-        name: userData?.name,
-        email: userData?.email,
-        department: userData?.department,
-        generatedId: userData?.generatedId || userData?.studentId || userData?.teacherId,
+        id: profileRes.data.id,
+        username: profileRes.data.username,
+        role: profileRes.data.role,
+        name: profileRes.data.name || profileRes.data.username,
+        email: profileRes.data.email,
+        department: profileRes.data.department,
+        generatedId: profileRes.data.generatedId || profileRes.data.studentId || profileRes.data.teacherId,
       })
     } catch (error) {
       throw error
     }
   }
+
 
   const signup = async (username: string, password: string, role: string) => {
     try {

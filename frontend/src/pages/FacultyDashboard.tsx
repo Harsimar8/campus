@@ -842,11 +842,11 @@ const FacultyDashboard: React.FC = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Welcome, {profile?.name || user?.name || user?.username || "Faculty"}</h1>
+        <h1>Welcome, { user?.name || user?.username || "User"}</h1>
         <p>Faculty Dashboard - {profile?.department || user?.department || "Department"}</p>
         <div className="user-info">
           <span className="welcome">
-            Welcome, {profile?.name || user?.name || user?.username}
+            Welcome, { user?.name || user?.username}
             {(profile?.department || user?.department) && ` - ${profile?.department || user?.department} Department`}
           </span>
           <button onClick={logout} className="logout-btn">
@@ -947,10 +947,10 @@ const FacultyDashboard: React.FC = () => {
             <div className="profile-container">
               <div className="profile-header">
                 <div className="profile-avatar">
-                  {(profile?.name || user?.name || user?.username || "F").charAt(0).toUpperCase()}
+                  {( user?.name || user?.username || "F").charAt(0).toUpperCase()}
                 </div>
                 <div className="profile-info">
-                  <h2>{profile?.name || user?.name || user?.username || "Faculty Name"}</h2>
+                  <h2>{ user?.name || user?.username || "Faculty Name"}</h2>
                   <p className="profile-designation">
                     {profile?.designation || "Assistant Professor"} -{" "}
                     {profile?.department || user?.department || "Computer Science"}
@@ -965,7 +965,7 @@ const FacultyDashboard: React.FC = () => {
                   <div className="profile-grid">
                     <div className="profile-field">
                       <label>Full Name:</label>
-                      <span>{profile?.name || user?.name || user?.username || "Not provided"}</span>
+                      <span>{ user?.name || user?.username || "Not provided"}</span>
                     </div>
                     <div className="profile-field">
                       <label>Employee ID:</label>
