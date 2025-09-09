@@ -2,7 +2,7 @@ package com.example.campus.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "assignment_submissions")
@@ -26,10 +26,10 @@ public class AssignmentSubmission {
     private String filePath;
 
     @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
+    private LocalDate submittedAt;
 
     @Column(name = "graded_at")
-    private LocalDateTime gradedAt;
+    private LocalDate gradedAt;
 
     @Column(name = "marks_obtained")
     private Integer marksObtained;
@@ -51,7 +51,7 @@ public class AssignmentSubmission {
     @PrePersist
     protected void onCreate() {
         if (submittedAt == null) {
-            submittedAt = LocalDateTime.now();
+            submittedAt = LocalDate.now();
         }
         if (status == null) {
             status = SubmissionStatus.SUBMITTED;
@@ -74,11 +74,11 @@ public class AssignmentSubmission {
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
 
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public LocalDate getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDate submittedAt) { this.submittedAt = submittedAt; }
 
-    public LocalDateTime getGradedAt() { return gradedAt; }
-    public void setGradedAt(LocalDateTime gradedAt) { this.gradedAt = gradedAt; }
+    public LocalDate getGradedAt() { return gradedAt; }
+    public void setGradedAt(LocalDate gradedAt) { this.gradedAt = gradedAt; }
 
     public Integer getMarksObtained() { return marksObtained; }
     public void setMarksObtained(Integer marksObtained) { this.marksObtained = marksObtained; }

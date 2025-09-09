@@ -11,7 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -116,7 +116,8 @@ public class FacultyController {
     }
 
     @PostMapping("/assignments")
-    public ResponseEntity<?> createAssignment(@RequestBody Map<String, Object> assignmentData, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> createAssignment(@RequestBody Map<String, Object> assignmentData,
+                                              @AuthenticationPrincipal UserDetails userDetails) {
         try {
             User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             if (user == null) {
@@ -125,18 +126,35 @@ public class FacultyController {
 
             Assignment assignment = new Assignment();
             assignment.setTitle(assignmentData.get("title").toString());
-            assignment.setDescription(assignmentData.get("description").toString());
+            assignment.setDescription(assignmentData.get("description") != null
+                    ? assignmentData.get("description").toString() : null);
             assignment.setSubject(assignmentData.get("subject").toString());
             assignment.setAssignedBy(user.getUsername());
-            assignment.setMaxMarks(Integer.valueOf(assignmentData.get("maxMarks").toString()));
-
-            if (assignmentData.get("dueDate") != null) {
-                assignment.setDueDate(LocalDateTime.parse(assignmentData.get("dueDate").toString()));
+            try {
+                Object maxMarksObj = assignmentData.get("maxMarks");
+                if (maxMarksObj != null && !maxMarksObj.toString().isEmpty()) {
+                    assignment.setMaxMarks(Integer.parseInt(maxMarksObj.toString()));
+                } else {
+                    assignment.setMaxMarks(null); // optional
+                }
+            } catch (NumberFormatException nfe) {
+                assignment.setMaxMarks(null); // fallback if not a number
             }
 
+
+            if (assignmentData.get("dueDate") != null) {
+                assignment.setDueDate(LocalDate.parse(assignmentData.get("dueDate").toString()));
+            }
+
+            // Optional: log the assignment object before saving
+            System.out.println("Saving assignment: " + assignment);
+
             assignmentRepository.save(assignment);
+
             return ResponseEntity.ok(Map.of("message", "Assignment created successfully"));
         } catch (Exception e) {
+            // log full stack trace
+            e.printStackTrace();  // <-- Add here
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
@@ -184,7 +202,7 @@ public class FacultyController {
             submission.setMarksObtained(Integer.valueOf(gradeData.get("marks").toString()));
             submission.setFeedback(gradeData.get("feedback").toString());
             submission.setGradedBy(user.getUsername());
-            submission.setGradedAt(LocalDateTime.now());
+            submission.setGradedAt(LocalDate.now());
             submission.setStatus(AssignmentSubmission.SubmissionStatus.GRADED);
 
             submissionRepository.save(submission);

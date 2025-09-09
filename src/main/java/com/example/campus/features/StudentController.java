@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -69,7 +69,7 @@ public class StudentController {
             List<Attendance> todayAttendance = attendanceRepository.findByStudentIdAndDate(studentId, today);
 
             // Pending assignments
-            List<Assignment> pendingAssignments = assignmentRepository.findUpcomingAssignments(LocalDateTime.now());
+            List<Assignment> pendingAssignments = assignmentRepository.findUpcomingAssignments(LocalDate.now());
 
             // Fee status
             BigDecimal totalPaid = feeRepository.calculateTotalPaid(studentId);
@@ -141,7 +141,7 @@ public class StudentController {
     @GetMapping("/assignments")
     public ResponseEntity<?> getAssignments(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<Assignment> assignments = assignmentRepository.findUpcomingAssignments(LocalDateTime.now());
+            List<Assignment> assignments = assignmentRepository.findUpcomingAssignments(LocalDate.now());
             return ResponseEntity.ok(assignments);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
@@ -160,7 +160,7 @@ public class StudentController {
             assignmentSubmission.setAssignmentId(assignmentId);
             assignmentSubmission.setStudentId(user.getId());
             assignmentSubmission.setSubmissionText(submission.get("text"));
-            assignmentSubmission.setSubmittedAt(LocalDateTime.now());
+            assignmentSubmission.setSubmittedAt(LocalDate.now());
 
             submissionRepository.save(assignmentSubmission);
             return ResponseEntity.ok(Map.of("message", "Assignment submitted successfully"));

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -15,8 +15,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByAssignedBy(String assignedBy);
 
     @Query("SELECT a FROM Assignment a WHERE a.dueDate > :currentTime ORDER BY a.dueDate ASC")
-    List<Assignment> findUpcomingAssignments(@Param("currentTime") LocalDateTime currentTime);
+    List<Assignment> findUpcomingAssignments(@Param("currentTime") LocalDate currentTime);
 
     @Query("SELECT a FROM Assignment a WHERE a.dueDate < :currentTime ORDER BY a.dueDate DESC")
-    List<Assignment> findPastAssignments(@Param("currentTime") LocalDateTime currentTime);
+    List<Assignment> findPastAssignments(@Param("currentTime") LocalDate currentTime);
 }
